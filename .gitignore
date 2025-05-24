@@ -1,0 +1,25 @@
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Next.js build output
+.next/
+
+# Node modules
+node_modules/
+
+# Optional: other common ignores for Next.js projects
+out/
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.env.development
+.env.production
+.vercel
+*.tgz
+.turbo/
