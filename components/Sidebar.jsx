@@ -76,7 +76,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           {[
             { label: "Dashboard", href: "/dashboard" },
             { label: "Inventory", href: "/inventory" },
-            { label: "Reports", href: "/reports" },
+            { label: "Reports", href: "/sales/record" },
             
           ].map((item) => (
             <Link

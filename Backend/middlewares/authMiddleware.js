@@ -1,5 +1,7 @@
+// Backend\middlewares\authMiddleware.js
+
 const jwt = require('jsonwebtoken');
-const db = require('../config/db');
+// const db = require('../config/db'); // db is not used directly in this snippet, can remove if not needed
 
 const protect = (req, res, next) => {
   let token;
@@ -22,17 +24,17 @@ const protect = (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     console.log('AuthMiddleware: Token decoded payload:', decoded);
 
-    // ************************************************************
-    // *** FIX IS HERE: Change from decoded.id to decoded.userId ***
-    // ************************************************************
-    if (!decoded || !decoded.userId) { // CHECK FOR decoded.userId
-        console.error('AuthMiddleware: Decoded token does not contain a valid user ID (expected "userId" property):', decoded);
-        return res.status(401).json({ error: 'Invalid token payload: User ID missing or malformed.' });
+    if (!decoded || !decoded.userId || !decoded.email) { // <--- ALSO CHECK FOR decoded.email
+        console.error('AuthMiddleware: Decoded token does not contain a valid user ID or email:', decoded);
+        return res.status(401).json({ error: 'Invalid token payload: User ID or email missing.' });
     }
 
-    // Attach user ID to req.user object using the correct property name
-    req.user = { id: decoded.userId }; // Assign decoded.userId to req.user.id
-    console.log('AuthMiddleware: req.user.id set to:', req.user.id);
+    // Attach user ID and EMAIL to req.user object
+    req.user = {
+        id: decoded.userId, // Assign decoded.userId to req.user.id
+        email: decoded.email // <--- ADD THIS LINE TO ATTACH EMAIL
+    };
+    console.log('AuthMiddleware: req.user set to:', req.user); // Will now show { id: ..., email: ... }
 
     next();
   } catch (error) {

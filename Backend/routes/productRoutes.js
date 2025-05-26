@@ -366,7 +366,109 @@ router.get('/sales/summary-by-product', protect, async (req, res) => {
         console.log('Database connection released for /sales/summary-by-product.');
     }
 });
+router.post('/send-expiry-alert', protect, async (req, res) => {
+    const user_id = req.user.id;
+    const user_email = req.user.email; // Get email from req.user
+    const daysThreshold = 7; // You can make this configurable if needed
 
+    if (!user_id || !user_email) {
+        console.error('Send expiry alert: User ID or email is missing after auth middleware.');
+        return res.status(401).json({ error: 'User not authenticated or email missing.' });
+    }
+
+    let connection;
+    try {
+        connection = await db.getConnection();
+
+        // 1. Fetch expiring products for the user
+        const [expiringProducts] = await connection.query(
+            `SELECT product_name, quantity, unit, expiry_date
+             FROM products
+             WHERE user_id = ? AND expiry_date IS NOT NULL
+             AND expiry_date <= CURDATE() + INTERVAL ? DAY
+             ORDER BY expiry_date ASC;`,
+            [user_id, daysThreshold]
+        );
+
+        console.log(`Found ${expiringProducts.length} products to alert for user ${user_id}`);
+
+        if (expiringProducts.length === 0) {
+            console.log('No products expiring soon for this user. No email alert sent.');
+            return res.status(200).json({ message: 'No products expiring soon. No alert sent.' });
+        }
+
+        // 2. Prepare the email content
+        let emailHtml = `
+            <h2>Expiry Alert from Inventory Management System</h2>
+            <p>Dear User,</p>
+            <p>The following products in your inventory are expiring soon or have already expired:</p>
+            <table border="1" style="border-collapse: collapse; width: 100%;">
+                <thead>
+                    <tr>
+                        <th style="padding: 8px; text-align: left;">Product Name</th>
+                        <th style="padding: 8px; text-align: left;">Quantity</th>
+                        <th style="padding: 8px; text-align: left;">Unit</th>
+                        <th style="padding: 8px; text-align: left;">Expiry Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        expiringProducts.forEach(product => {
+            const expiryDate = new Date(product.expiry_date).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            emailHtml += `
+                <tr>
+                    <td style="padding: 8px;">${product.product_name}</td>
+                    <td style="padding: 8px;">${product.quantity}</td>
+                    <td style="padding: 8px;">${product.unit}</td>
+                    <td style="padding: 8px;">${expiryDate}</td>
+                </tr>
+            `;
+        });
+
+        emailHtml += `
+                </tbody>
+            </table>
+            <p>Please take necessary action for these items.</p>
+            <p>Sincerely,<br>Your Inventory Management System</p>
+        `;
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: user_email, // Send to the logged-in user's email
+            subject: 'Urgent: Products Expiring Soon!',
+            html: emailHtml,
+            text: `Expiry Alert: Some products in your inventory are expiring soon. Please check your dashboard for details.` // Plain text fallback
+        };
+
+        // 3. Send the email
+        await transporter.sendMail(mailOptions);
+        console.log(`Expiry alert email sent successfully to ${user_email} for ${expiringProducts.length} products.`);
+
+        return res.status(200).json({
+            message: 'Expiry alert email sent successfully!',
+            email_sent_to: user_email,
+            products_alerted: expiringProducts.length
+        });
+
+    } catch (error) {
+        console.error('Error sending expiry alert email:', error);
+        let errorMessage = 'Failed to send expiry alert email.';
+        if (error.code === 'EENVELOPE' || error.code === 'EAUTH') {
+            errorMessage = 'Authentication error with email service. Check EMAIL_USER and EMAIL_PASS.';
+        } else if (error.responseCode) {
+            errorMessage = `Email service error: ${error.responseCode} - ${error.response}`;
+        }
+        return res.status(500).json({ error: errorMessage, details: error.message });
+    } finally {
+        if (connection) connection.release();
+        console.log('Database connection released for /send-expiry-alert.');
+    }
+});
 // Get daily total revenue for the logged-in user within a date range (default last 30 days)
 router.get('/sales/daily-revenue', protect, async (req, res) => {
     const user_id = req.user.id;
@@ -409,6 +511,313 @@ router.get('/sales/daily-revenue', protect, async (req, res) => {
     }
 });
 
+// Add this route to your productRoutes.js (replace the existing /sales/record route)
+
+
+
+router.post('/sales/record', protect, async (req, res) => {
+
+    console.log('Record sale request received:', req.body);
+
+    console.log('User from token:', req.user);
+
+    
+
+    const { product_id, quantity_sold, sale_price, sale_date } = req.body;
+
+    const user_id = req.user.id;
+
+
+
+    // Detailed logging for debugging
+
+    console.log('Parsed request data:', {
+
+        user_id,
+
+        product_id,
+
+        quantity_sold,
+
+        sale_price,
+
+        sale_date
+
+    });
+
+
+
+    if (!user_id) {
+
+        console.error('Record sale: User ID is missing after auth middleware.');
+
+        return res.status(401).json({ error: 'User not authenticated or ID missing.' });
+
+    }
+
+
+
+    // Validate required fields
+
+    if (product_id === undefined || product_id === null || product_id === '') {
+
+        return res.status(400).json({ error: 'Product ID is required.' });
+
+    }
+
+    if (quantity_sold === undefined || quantity_sold === null || quantity_sold === '') {
+
+        return res.status(400).json({ error: 'Quantity sold is required.' });
+
+    }
+
+    if (sale_price === undefined || sale_price === null || sale_price === '') {
+
+        return res.status(400).json({ error: 'Sale price is required.' });
+
+    }
+
+    if (!sale_date) {
+
+        return res.status(400).json({ error: 'Sale date is required.' });
+
+    }
+
+
+
+    // Convert and validate data types
+
+    const productIdInt = parseInt(product_id);
+
+    const quantitySoldInt = parseInt(quantity_sold);
+
+    const salePriceFloat = parseFloat(sale_price);
+
+
+
+    if (isNaN(productIdInt) || productIdInt <= 0) {
+
+        return res.status(400).json({ error: 'Product ID must be a valid positive number.' });
+
+    }
+
+    if (isNaN(quantitySoldInt) || quantitySoldInt <= 0) {
+
+        return res.status(400).json({ error: 'Quantity sold must be a positive number.' });
+
+    }
+
+    if (isNaN(salePriceFloat) || salePriceFloat <= 0) {
+
+        return res.status(400).json({ error: 'Sale price must be a positive number.' });
+
+    }
+
+
+
+    // Validate date format
+
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+    if (!dateRegex.test(sale_date)) {
+
+        return res.status(400).json({ error: 'Sale date must be in YYYY-MM-DD format.' });
+
+    }
+
+
+
+    let connection;
+
+    try {
+
+        connection = await db.getConnection();
+
+        await connection.beginTransaction();
+
+
+
+        console.log('Starting transaction for sale recording...');
+
+
+
+        // 1. Verify product exists and belongs to user, get current quantity
+
+        const [productRows] = await connection.query(
+
+            'SELECT id, product_name, quantity, cost_price FROM products WHERE id = ? AND user_id = ? FOR UPDATE',
+
+            [productIdInt, user_id]
+
+        );
+
+
+
+        console.log('Product query result:', productRows);
+
+
+
+        if (productRows.length === 0) {
+
+            await connection.rollback();
+
+            console.error(`Product not found: ID ${productIdInt} for user ${user_id}`);
+
+            return res.status(404).json({ 
+
+                error: 'Product not found or you do not have permission to sell this product.' 
+
+            });
+
+        }
+
+
+
+        const product = productRows[0];
+
+        const currentQuantity = parseInt(product.quantity);
+
+
+
+        console.log('Current product quantity:', currentQuantity);
+
+        console.log('Requested quantity to sell:', quantitySoldInt);
+
+
+
+        // 2. Check if there's enough stock
+
+        if (currentQuantity < quantitySoldInt) {
+
+            await connection.rollback();
+
+            console.error(`Insufficient stock: Available ${currentQuantity}, requested ${quantitySoldInt}`);
+
+            return res.status(400).json({ 
+
+                error: `Insufficient stock. Only ${currentQuantity} units available, but ${quantitySoldInt} requested.` 
+
+            });
+
+        }
+
+
+
+        const newQuantity = currentQuantity - quantitySoldInt;
+
+        console.log('New quantity after sale:', newQuantity);
+
+
+
+        // 3. Insert the sale transaction
+
+        const [saleResult] = await connection.query(
+
+            'INSERT INTO sales_transactions (user_id, product_id, quantity_sold, sale_price, sale_date) VALUES (?, ?, ?, ?, ?)',
+
+            [user_id, productIdInt, quantitySoldInt, salePriceFloat, sale_date]
+
+        );
+
+
+
+        console.log('Sale transaction inserted with ID:', saleResult.insertId);
+
+
+
+        // 4. Update the product quantity
+
+        const [updateResult] = await connection.query(
+
+            'UPDATE products SET quantity = ?, updated_at = NOW() WHERE id = ? AND user_id = ?',
+
+            [newQuantity, productIdInt, user_id]
+
+        );
+
+
+
+        console.log('Product quantity update result:', updateResult);
+
+
+
+        if (updateResult.affectedRows === 0) {
+
+            await connection.rollback();
+
+            console.error('Failed to update product quantity - no rows affected');
+
+            return res.status(500).json({ error: 'Failed to update product quantity.' });
+
+        }
+
+
+
+        await connection.commit();
+
+        console.log('Transaction committed successfully');
+
+
+
+        return res.status(201).json({
+
+            message: 'Sale recorded and product quantity updated successfully!',
+
+            sale_id: saleResult.insertId,
+
+            product_name: product.product_name,
+
+            quantity_sold: quantitySoldInt,
+
+            sale_price: salePriceFloat,
+
+            previous_quantity: currentQuantity,
+
+            updated_product_quantity: newQuantity,
+
+            sale_date: sale_date
+
+        });
+
+
+
+    } catch (error) {
+
+        if (connection) {
+
+            await connection.rollback();
+
+            console.error('Transaction rolled back due to error.');
+
+        }
+
+        console.error('Detailed error in record sale:', error);
+
+        return res.status(500).json({
+
+            error: 'Failed to record sale due to a database error.',
+
+            details: error.message,
+
+            sqlState: error.sqlState || 'Unknown',
+
+            errno: error.errno || 'Unknown'
+
+        });
+
+    } finally {
+
+        if (connection) {
+
+            connection.release();
+
+            console.log('Database connection released for /sales/record.');
+
+        }
+
+    }
+
+});
 // Get all sales transactions for the logged-in user (similar to my-recent-sales but without limit)
 router.get('/sales/all-transactions', protect, async (req, res) => {
     const user_id = req.user.id;
@@ -521,5 +930,192 @@ router.post('/sales/record-sale', protect, async (req, res) => {
         console.log('Database connection released for /sales/record-sale.');
     }
 });
+router.post('/send-bulk-expiry-alert', protect, async (req, res) => {
+    // Assuming you want to send this to a specific admin email, not req.user.email
+    const adminEmail = process.env.ADMIN_EMAIL; // Define ADMIN_EMAIL in your .env file
+    const daysThreshold = 7; // Define how many days "soon to expire" means
 
+    if (!adminEmail) {
+        console.error('CRITICAL ERROR: ADMIN_EMAIL is not defined in environment variables for bulk alert!');
+        return res.status(500).json({ error: 'Server misconfiguration: Admin email missing.' });
+    }
+
+    // You can optionally add a check here if only specific users (e.g., role 'admin') can trigger this
+    // if (req.user.role !== 'admin') {
+    //     return res.status(403).json({ error: 'Forbidden: Only administrators can send bulk alerts.' });
+    // }
+
+    let connection;
+    try {
+        connection = await db.getConnection();
+
+        // 1. Fetch ALL expiring products (or all expiring products across all users)
+        // If you want all products across all users, remove `user_id` from WHERE clause
+        // If you want ALL products for the logged-in user (similar to previous but named bulk), keep user_id
+        // For 'bulk', let's assume you want all expiring products across all users for an admin
+        const [expiringProducts] = await connection.query(
+            `SELECT p.product_name, p.quantity, p.unit, p.expiry_date, u.email as user_email, u.username as user_username
+             FROM products p
+             JOIN users u ON p.user_id = u.id
+             WHERE p.expiry_date IS NOT NULL
+             AND p.expiry_date <= CURDATE() + INTERVAL ? DAY
+             ORDER BY p.expiry_date ASC;`,
+            [daysThreshold]
+        );
+
+        console.log(`Found ${expiringProducts.length} total products to alert for bulk email.`);
+
+        if (expiringProducts.length === 0) {
+            console.log('No products expiring soon across all users. No bulk email alert sent.');
+            return res.status(200).json({ message: 'No products expiring soon. No bulk alert sent.' });
+        }
+
+        // 2. Prepare the email content
+        let emailHtml = `
+            <h2>Bulk Expiry Alert from Inventory Management System</h2>
+            <p>Dear Administrator,</p>
+            <p>The following products in the system are expiring soon or have already expired:</p>
+            <table border="1" style="border-collapse: collapse; width: 100%;">
+                <thead>
+                    <tr>
+                        <th style="padding: 8px; text-align: left;">Product Name</th>
+                        <th style="padding: 8px; text-align: left;">Quantity</th>
+                        <th style="padding: 8px; text-align: left;">Unit</th>
+                        <th style="padding: 8px; text-align: left;">Expiry Date</th>
+                        <th style="padding: 8px; text-align: left;">Owner Email</th>
+                        <th style="padding: 8px; text-align: left;">Owner Username</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        expiringProducts.forEach(product => {
+            const expiryDate = new Date(product.expiry_date).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            emailHtml += `
+                <tr>
+                    <td style="padding: 8px;">${product.product_name}</td>
+                    <td style="padding: 8px;">${product.quantity}</td>
+                    <td style="padding: 8px;">${product.unit}</td>
+                    <td style="padding: 8px;">${expiryDate}</td>
+                    <td style="padding: 8px;">${product.user_email || 'N/A'}</td>
+                    <td style="padding: 8px;">${product.user_username || 'N/A'}</td>
+                </tr>
+            `;
+        });
+
+        emailHtml += `
+                </tbody>
+            </table>
+            <p>Please review and take necessary action for these items across your users.</p>
+            <p>Sincerely,<br>Your Inventory Management System</p>
+        `;
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: adminEmail, // Send to the predefined admin email
+            subject: 'Bulk Urgent: Products Expiring Soon Across All Users!',
+            html: emailHtml,
+            text: `Bulk Expiry Alert: Some products across your users are expiring soon. Please check the system for details.`
+        };
+
+        // 3. Send the email
+        await transporter.sendMail(mailOptions);
+        console.log(`Bulk expiry alert email sent successfully to ${adminEmail} for ${expiringProducts.length} products.`);
+
+        return res.status(200).json({
+            message: 'Bulk expiry alert email sent successfully!',
+            email_sent_to: adminEmail,
+            products_alerted: expiringProducts.length
+        });
+
+    } catch (error) {
+        console.error('Error sending bulk expiry alert email:', error);
+        let errorMessage = 'Failed to send bulk expiry alert email.';
+        if (error.code === 'EENVELOPE' || error.code === 'EAUTH') {
+            errorMessage = 'Authentication error with email service. Check EMAIL_USER and EMAIL_PASS.';
+        } else if (error.responseCode) {
+            errorMessage = `Email service error: ${error.responseCode} - ${error.response}`;
+        }
+        return res.status(500).json({ error: errorMessage, details: error.message });
+    } finally {
+        if (connection) connection.release();
+        console.log('Database connection released for /send-bulk-expiry-alert.');
+    }
+});
+
+// Get products expiring soon for logged-in user
+router.get('/expiry', protect, async (req, res) => {
+    const user_id = req.user.id;
+    const daysThreshold = 7; // Define how many days "soon to expire" means
+
+    if (!user_id) {
+        console.error('Get expiring products: User ID is missing after auth middleware.');
+        return res.status(401).json({ error: 'User not authenticated or ID missing.' });
+    }
+
+    let connection;
+    try {
+        connection = await db.getConnection();
+
+        // Fetch products expiring within the next `daysThreshold` days or already expired
+        const query = `
+            SELECT id, product_name, quantity, unit, expiry_date, cost_price
+            FROM products
+            WHERE user_id = ? AND expiry_date IS NOT NULL
+            AND expiry_date <= CURDATE() + INTERVAL ? DAY
+            ORDER BY expiry_date ASC;
+        `;
+
+        const [results] = await connection.query(query, [user_id, daysThreshold]);
+
+        console.log(`Found ${results.length} products expiring soon or already expired for user ${user_id}`);
+        return res.status(200).json({ products: results }); // Wrap in 'products' key as frontend expects
+
+    } catch (error) {
+        console.error('Error fetching expiring products:', error);
+        return res.status(500).json({
+            error: 'Failed to fetch expiring products due to a database error.',
+            details: error.message
+        });
+    } finally {
+        if (connection) connection.release();
+        console.log('Database connection released for /expiry.');
+    }
+});
+// NEW: Test Email Configuration (Protected)
+router.post('/test-email', protect, async (req, res) => {
+    const user_email = req.user.email; // Assuming your protect middleware adds user.email to req.user
+
+    if (!user_email) {
+        return res.status(400).json({ error: 'User email not available for testing.' });
+    }
+
+    const mailOptions = {
+        from: process.env.EMAIL_USER, // Your sender email
+        to: user_email, // Send to the logged-in user's email
+        subject: 'Test Email from Inventory Management System',
+        text: 'This is a test email to confirm your email configuration is working correctly.',
+        html: '<p>This is a **test email** from your Inventory Management System to confirm your email configuration is working correctly.</p>'
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log(`Test email sent successfully to ${user_email}`);
+        return res.status(200).json({ message: 'Test email sent successfully!', email_sent_to: user_email });
+    } catch (error) {
+        console.error('Error sending test email:', error);
+        // Provide more specific error details if possible (e.g., from Nodemailer's error object)
+        let errorMessage = 'Failed to send test email.';
+        if (error.code === 'EENVELOPE' || error.code === 'EAUTH') {
+             errorMessage = 'Authentication error with email service. Check EMAIL_USER and EMAIL_PASS.';
+        } else if (error.responseCode) {
+             errorMessage = `Email service error: ${error.responseCode} - ${error.response}`;
+        }
+        return res.status(500).json({ error: errorMessage, details: error.message });
+    }
+});
 module.exports = router;

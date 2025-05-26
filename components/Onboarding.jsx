@@ -130,7 +130,7 @@ export default function Onboarding() {
         } else if (trackStock) {
           router.push('/inventory');
         } else {
-          router.push('/reports');
+          router.push('/sales/record');
         }
       })
       .catch(error => {

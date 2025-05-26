@@ -201,7 +201,7 @@ export default function ExpiryPage() {
     <div className="space-y-6 min-h-screen bg-gray-50">
       <Navbar />
       <div className="flex">
-        <Sidebar />
+        
         <div className="flex-1 px-6 py-4">
           <div className="max-w-7xl mx-auto">
             {/* Header Section */}
@@ -287,7 +287,7 @@ export default function ExpiryPage() {
           </div>
         </div>
       </div>
-      <Footer />
+     
     </div>
   );
 }
