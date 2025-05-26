@@ -1,36 +1,113 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+![Uploading image.png…]()
 
-## Getting Started
+![image](https://github.com/user-attachments/assets/d4ab9688-58d3-4333-9a88-98a4b9264a92)
 
-First, run the development server:
+
+
+# 🧾 ShelfLife - Inventory Management System
+
+[![Made with Node.js](https://img.shields.io/badge/Backend-Node.js-green?logo=node.js)](https://nodejs.org)
+[![Frontend with Next.js](https://img.shields.io/badge/Frontend-Next.js-blue?logo=next.js)](https://nextjs.org)
+[![MySQL](https://img.shields.io/badge/Database-MySQL-00758F?logo=mysql)](https://www.mysql.com/)
+[![Deployment](https://img.shields.io/badge/Hosted%20on-Vercel-black?logo=vercel)](https://vercel.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+> **ShelfLife** is a full-stack inventory and expiry tracking system for small businesses and shop owners. It provides a clean dashboard, powerful stock tracking, and real-time alerts to prevent losses from expired or missing inventory.
+
+---
+
+## 🚀 Features
+
+- 🔐 **User Authentication** (Register/Login with JWT)
+- 📦 **Product Inventory Management**
+- 🕒 **Expiry Tracking with Notifications**
+- 📊 **Sales & Profit Analysis (Coming Soon)**
+- 🧠 **Smart Suggestions for Restocking**
+- 🧼 **Modern UI with Sidebar Navigation**
+- 📁 Modular Code (Frontend + Backend separation)
+
+---
+
+## 📂 Tech Stack
+
+| Layer       | Technology            |
+|-------------|------------------------|
+| Frontend    | Next.js (React), JSX, CSS |
+| Backend     | Node.js, Express.js     |
+| Database    | MySQL (hosted on Railway) |
+| Auth        | JWT (Access + Refresh Tokens) |
+| Hosting     | Vercel (Frontend), Railway (DB/API) |
+
+---
+
+## 🌐 Live Demo
+
+> 🚧 **Live deployment coming soon**  
+> Once deployed, the link will go here: [https://shelflife.vercel.app](https://shelflife.vercel.app)
+
+---
+
+## 📸 Screenshots
+
+| Dashboard (with expiry view) | Add Product Modal |
+|------------------------------|--------------------|
+| ![dashboard](./screenshots/dashboard.png) | ![modal](./screenshots/add_product.png) |
+
+---
+
+## 🛠️ Installation (Local Setup)
 
 ```bash
+# 1. Clone the repository
+git clone https://github.com/haniajohar/inventory-management-system.git
+cd inventory-management-system
+
+# 2. Backend Setup
+cd Backend
+npm install
+# Create a .env file (see .env.example or below)
+npm start
+
+# 3. Frontend Setup (if using Next.js App Directory structure)
+cd ../
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+🧪 .env Example (Backend)
+env
+# MySQL Database
+DB_HOST=your-database-host
+DB_USER=your-db-user
+DB_PASSWORD=your-db-password
+DB_NAME=inventory_db
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+# JWT Auth
+JWT_ACCESS_SECRET=your-secret
+JWT_REFRESH_SECRET=your-refresh-secret
+JWT_EXPIRES_IN=1d
+NODE_ENV=development
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Email Alerts
+EMAIL_USER=your@email.com
+EMAIL_PASS=your-email-pass
 
-## Learn More
+ To-Do / Upcoming Features
+📈 Graphs for Sales Trends
 
-To learn more about Next.js, take a look at the following resources:
+💸 Profit & Loss Auto Calculations
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+⏰ Cron Jobs for Daily Expiry Reminders
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+🔔 Email Notifications for Expiring Products
 
-## Deploy on Vercel
+Author
+Hania Johar
+🔗 GitHub
+📧 https://github.com/haniajohar
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+ Contributions
+Pull requests are welcome! For major changes, open an issue first to discuss what you'd like to change.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+If you like this project...
+Please consider giving it a ⭐ on GitHub — it helps others find it and shows your support!
+
