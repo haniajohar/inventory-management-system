@@ -1,4 +1,4 @@
-![Uploading image.png…]()
+![image](https://github.com/user-attachments/assets/80827825-4d15-4e4f-b912-0b28023e90d6)
 ![image](https://github.com/user-attachments/assets/d4ab9688-58d3-4333-9a88-98a4b9264a92)
 
 
@@ -50,7 +50,8 @@
 
 | Dashboard (with expiry view) | Add Product Modal |
 |------------------------------|--------------------|
-| ![dashboard](./screenshots/dashboard.png) | ![modal](./screenshots/add_product.png) |
+| ![image](https://github.com/user-attachments/assets/4f6b16a6-0d33-40c5-9f4f-ffaf4168d4e4)
+ | ![image](https://github.com/user-attachments/assets/80827825-4d15-4e4f-b912-0b28023e90d6) |
 
 ---
 
