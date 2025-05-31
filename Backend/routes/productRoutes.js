@@ -16,13 +16,35 @@ const emailConfig = {
         pass: process.env.EMAIL_PASS || 'your-app-password'
     }
 };
-
+// Add this helper function right after your email configuration and before your routes
+const validateUser = (req, res) => {
+    console.log('=== USER VALIDATION DEBUG ===');
+    console.log('req.user:', req.user);
+    console.log('req.user.id:', req.user ? req.user.id : 'undefined');
+    console.log('typeof req.user.id:', req.user ? typeof req.user.id : 'undefined');
+    console.log('=============================');
+    
+    if (!req.user) {
+        console.error('CRITICAL: req.user is null or undefined');
+        return false;
+    }
+    
+    if (!req.user.id) {
+        console.error('CRITICAL: req.user.id is missing');
+        return false;
+    }
+    
+    return true;
+};
 const transporter = nodemailer.createTransport(emailConfig);
 
 // Save business info (Protected)
 router.post('/save-business-info', protect, async (req, res) => {
     console.log('Save business info request received:', req.body);
     const { business_type, track_expiry, track_stock, track_report } = req.body;
+    if (!validateUser(req, res)) {
+    return res.status(401).json({ error: 'User not authenticated or ID missing.' });
+}
     const user_id = req.user.id;
     console.log('User ID extracted from token:', user_id);
 
@@ -79,6 +101,9 @@ router.post('/save-business-info', protect, async (req, res) => {
 router.post('/add', protect, async (req, res) => {
     console.log('Add product request received:', req.body);
     const { product_name, quantity, unit, expiry_date, cost_price } = req.body;
+    if (!validateUser(req, res)) {
+    return res.status(401).json({ error: 'User not authenticated or ID missing.' });
+}
     const user_id = req.user.id;
 
     if (!user_id) {
@@ -136,6 +161,9 @@ router.put('/update/:id', protect, async (req, res) => {
     console.log('Update data:', req.body);
 
     const { id } = req.params;
+    if (!validateUser(req, res)) {
+    return res.status(401).json({ error: 'User not authenticated or ID missing.' });
+}
     const user_id = req.user.id;
     const { product_name, quantity, unit, expiry_date, cost_price } = req.body;
 
@@ -208,6 +236,9 @@ router.delete('/delete/:id', protect, async (req, res) => {
     console.log('Delete product request received for ID:', req.params.id);
 
     const { id } = req.params;
+    if (!validateUser(req, res)) {
+    return res.status(401).json({ error: 'User not authenticated or ID missing.' });
+}
     const user_id = req.user.id;
 
     if (!user_id) {
@@ -255,6 +286,9 @@ router.delete('/delete/:id', protect, async (req, res) => {
 
 // Get all products for logged-in user
 router.get('/my-products', protect, async (req, res) => {
+    if (!validateUser(req, res)) {
+    return res.status(401).json({ error: 'User not authenticated or ID missing.' });
+}
     const user_id = req.user.id;
 
     if (!user_id) {
@@ -288,6 +322,9 @@ router.get('/my-products', protect, async (req, res) => {
 
 // Get recent sales for the logged-in user
 router.get('/my-recent-sales', protect, async (req, res) => {
+    if (!validateUser(req, res)) {
+    return res.status(401).json({ error: 'User not authenticated or ID missing.' });
+}
     const user_id = req.user.id;
 
     if (!user_id) {
@@ -327,6 +364,9 @@ router.get('/my-recent-sales', protect, async (req, res) => {
 
 // Get aggregated sales data by product for the logged-in user
 router.get('/sales/summary-by-product', protect, async (req, res) => {
+    if (!validateUser(req, res)) {
+    return res.status(401).json({ error: 'User not authenticated or ID missing.' });
+}
     const user_id = req.user.id;
 
     if (!user_id) {
@@ -367,6 +407,9 @@ router.get('/sales/summary-by-product', protect, async (req, res) => {
     }
 });
 router.post('/send-expiry-alert', protect, async (req, res) => {
+    if (!validateUser(req, res)) {
+    return res.status(401).json({ error: 'User not authenticated or ID missing.' });
+}
     const user_id = req.user.id;
     const user_email = req.user.email; // Get email from req.user
     const daysThreshold = 7; // You can make this configurable if needed
@@ -471,6 +514,9 @@ router.post('/send-expiry-alert', protect, async (req, res) => {
 });
 // Get daily total revenue for the logged-in user within a date range (default last 30 days)
 router.get('/sales/daily-revenue', protect, async (req, res) => {
+   if (!validateUser(req, res)) {
+    return res.status(401).json({ error: 'User not authenticated or ID missing.' });
+}
     const user_id = req.user.id;
     const startDate = req.query.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const endDate = req.query.endDate || new Date().toISOString().split('T')[0];
@@ -524,7 +570,9 @@ router.post('/sales/record', protect, async (req, res) => {
     
 
     const { product_id, quantity_sold, sale_price, sale_date } = req.body;
-
+if (!validateUser(req, res)) {
+    return res.status(401).json({ error: 'User not authenticated or ID missing.' });
+}
     const user_id = req.user.id;
 
 
@@ -820,6 +868,9 @@ router.post('/sales/record', protect, async (req, res) => {
 });
 // Get all sales transactions for the logged-in user (similar to my-recent-sales but without limit)
 router.get('/sales/all-transactions', protect, async (req, res) => {
+    if (!validateUser(req, res)) {
+    return res.status(401).json({ error: 'User not authenticated or ID missing.' });
+}
     const user_id = req.user.id;
     const limit = req.query.limit ? parseInt(req.query.limit) : null;
 
@@ -867,6 +918,9 @@ router.get('/sales/all-transactions', protect, async (req, res) => {
 router.post('/sales/record-sale', protect, async (req, res) => {
     console.log('Record sale request received:', req.body);
     const { product_id, quantity_sold, sale_price, remaining_quantity } = req.body;
+    if (!validateUser(req, res)) {
+    return res.status(401).json({ error: 'User not authenticated or ID missing.' });
+}
     const user_id = req.user.id;
 
     if (!user_id) {
@@ -1047,8 +1101,16 @@ router.post('/send-bulk-expiry-alert', protect, async (req, res) => {
     }
 });
 
+
+// This should set up a server-side cron job or scheduler to:
+// 1. Check for expiring products every 24 hours
+// 2. Send email alerts automatically
+// 3. Continue until user disables or expires
 // Get products expiring soon for logged-in user
 router.get('/expiry', protect, async (req, res) => {
+    if (!validateUser(req, res)) {
+    return res.status(401).json({ error: 'User not authenticated or ID missing.' });
+}
     const user_id = req.user.id;
     const daysThreshold = 7; // Define how many days "soon to expire" means
 

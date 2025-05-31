@@ -43,7 +43,7 @@ const refreshAccessToken = async () => {
 export default function LoginPage() {
   const router = useRouter();
   
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -79,12 +79,12 @@ export default function LoginPage() {
     setError(null);
     
     try {
-      console.log('Sending login request with:', { email, password });
+      console.log('Sending login request with:', { username, password });
       
       const res = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }),
         credentials: 'include', // needed for cookies (refresh token)
       });
       
@@ -140,12 +140,12 @@ export default function LoginPage() {
                 <FiMail className="text-purple-900" />
               </div>
               <input
-                type="email"
-                name="email"
-                placeholder="Your email address"
+                type="username"
+                name="username"
+                placeholder="Your user name"
                 className="w-full pl-10 pr-4 py-2 text-black border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
                 disabled={loading}
               />
